@@ -299,7 +299,9 @@ function DiscardPanel({
   gameState: GameState;
   onDiscard: (resources: Partial<Record<ResourceType, number>>) => void;
 }) {
-  const playerId = gameState.currentPlayerIndex;
+  // Always use player 0 (human) — discard panel is only shown for the human player.
+  // When an AI rolls a 7, currentPlayerIndex may point to the AI, not the human.
+  const playerId = 0;
   const player = gameState.players[playerId];
   const mustDiscard = Math.floor(totalCards(player.resources) / 2);
 

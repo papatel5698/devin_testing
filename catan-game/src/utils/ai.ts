@@ -564,11 +564,32 @@ export async function executeAITurn(
 
     const currentPlayer = current.players[current.currentPlayerIndex];
 
-    // Only act if it's still an AI player's turn
-    if (!currentPlayer.isAI) break;
-
     // Stop if game is over
     if (current.phase === GamePhase.GameOver) break;
+
+    // Special case: during Discarding phase, AI players may need to discard
+    // even when currentPlayerIndex points to the human player (who rolled the 7).
+    // Handle all AI discards before returning control to the human.
+    if (!currentPlayer.isAI) {
+      if (current.phase === GamePhase.Discarding) {
+        let handledAny = false;
+        for (const pid of current.playersNeedToDiscard) {
+          if (current.players[pid].isAI) {
+            await delay(AI_DELAY);
+            const tempState = { ...current, currentPlayerIndex: pid };
+            const toDiscard = chooseDiscard(tempState);
+            current = discardResources(current, pid, toDiscard);
+            setState(current);
+            handledAny = true;
+          }
+        }
+        // After handling AI discards, return control to the human
+        // (they may still need to discard, or the phase may have advanced)
+        if (handledAny) continue;
+      }
+      // Not an AI turn and no AI discards to process — stop
+      break;
+    }
 
     await delay(AI_DELAY);
 
